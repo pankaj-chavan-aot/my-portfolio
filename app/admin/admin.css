@@ -1316,3 +1316,137 @@ button:disabled:hover {
   transform: none !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
+/* ----------------------------------------------------------------------- */
+/* Notification Button Styles */
+.notification-btn {
+  background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 15px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 8px 25px rgba(237, 137, 54, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: visible; /* ✅ Important: Changed from hidden to visible */
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: all 0.6s ease;
+}
+
+.notification-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 
+    0 15px 35px rgba(237, 137, 54, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.notification-btn:hover::before {
+  left: 100%;
+}
+
+/* Notification Badge - Fixed Design */
+.notification-badge {
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+  color: white;
+  border-radius: 50%;
+  min-width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  animation: pulse 2s infinite;
+  box-shadow: 
+    0 4px 12px rgba(229, 62, 62, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border: 2px solid white;
+  z-index: 10; /* ✅ Ensure it stays on top */
+}
+
+@keyframes pulse {
+  0% { 
+    transform: scale(1); 
+    box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
+  }
+  50% { 
+    transform: scale(1.1); 
+    box-shadow: 0 6px 18px rgba(229, 62, 62, 0.6);
+  }
+  100% { 
+    transform: scale(1); 
+    box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
+  }
+}
+
+/* Admin Actions - Improved Layout */
+.admin-actions {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+  position: relative;
+}
+
+/* Button Container for proper badge positioning */
+.notification-btn-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Alternative: If you want the badge inside the button but properly visible */
+.notification-btn-with-badge {
+  position: relative;
+  padding-right: 40px; /* Extra space for badge */
+}
+
+/* For very high numbers */
+.notification-badge-large {
+  min-width: 26px;
+  height: 26px;
+  font-size: 0.7rem;
+  top: -8px;
+  right: -8px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .notification-btn {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+  }
+  
+  .notification-badge {
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    top: -5px;
+    right: -5px;
+  }
+  
+  .admin-actions {
+    gap: 15px;
+    justify-content: center;
+  }
+}
