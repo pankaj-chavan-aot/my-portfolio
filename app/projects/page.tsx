@@ -90,17 +90,66 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import Button from '@/components/UI/Button';
-import { projects } from '@/data/portfolio-data';
+import { getProjects, Project } from '@/data/portfolio-data';
 
 export default function Projects() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getProjects();
+        setProjects(data);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const handleGithubClick = (url: string) => {
-    window.open(url, '_blank');
+    if (url && url !== '#') {
+      window.open(url, '_blank');
+    } else {
+      alert('GitHub URL not available');
+    }
   };
 
   const handleLiveDemoClick = (url: string) => {
-    window.open(url, '_blank');
+    if (url && url !== '#') {
+      window.open(url, '_blank');
+    } else {
+      alert('Live demo URL not available');
+    }
   };
+
+  if (isLoading) {
+    return (
+      <section className="projects-section">
+        <div className="container">
+          <div className="text-center">
+            <div className="loading-spinner" style={{ 
+              display: 'inline-block',
+              width: '40px',
+              height: '40px',
+              border: '4px solid #f3f3f3',
+              borderTop: '4px solid #3498db',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '20px auto'
+            }}></div>
+            <p>Loading projects...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="projects-section">
@@ -126,7 +175,7 @@ export default function Projects() {
                   variant="outline" 
                   onClick={() => handleGithubClick(project.githubUrl)}
                 />
-                {project.liveUrl && (
+                {project.liveUrl && project.liveUrl !== '#' && (
                   <Button 
                     label="Live Demo" 
                     variant="primary" 
@@ -137,6 +186,12 @@ export default function Projects() {
             </div>
           ))}
         </div>
+
+        {projects.length === 0 && (
+          <div className="text-center">
+            <p>No projects found. Check back soon!</p>
+          </div>
+        )}
       </div>
     </section>
   );

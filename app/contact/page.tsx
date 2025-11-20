@@ -317,21 +317,38 @@
 //   );
 // }
 
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppForm } from '@/hooks/useForm';
 import { contactSchema, type ContactFormData } from '@/lib/validation/schemas';
 import { addNotification } from '@/data/notifications-data';
+import { getPersonalInfo, PersonalInfo } from '@/data/portfolio-data';
 import Input from '@/components/UI/Form/Input';
 import TextArea from '@/components/UI/Form/TextArea';
 import ErrorMessage from '@/components/UI/Form/ErrorMessage';
-import { personalInfo } from '@/data/portfolio-data';
 import { toast } from 'sonner';
 
 export default function Contact() {
   const [isSuccess, setIsSuccess] = useState(false);
+  const [personalInfo, setPersonalInfo] = useState<PersonalInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getPersonalInfo();
+        setPersonalInfo(data);
+      } catch (error) {
+        console.error('Error fetching personal info:', error);
+        toast.error('Failed to load contact information');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const {
     register,
@@ -348,29 +365,44 @@ export default function Contact() {
       message: ''
     },
     onSubmit: async (data: ContactFormData) => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Add notification to admin panel
-      addNotification({
-        type: 'info',
-        title: 'New Contact Form Submission',
-        message: `From: ${data.name} (${data.email}) - ${data.message.substring(0, 100)}...`,
-        source: 'contact'
-      });
+      try {
+        // Send to API
+        const response = await fetch('/api/contact', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
 
-      // Show success toast
-      toast.success('Message sent successfully! I will get back to you soon.', {
-        duration: 5000,
-        position: 'top-center'
-      });
+        if (!response.ok) {
+          throw new Error('Failed to send message');
+        }
 
-      // Reset form
-      resetForm();
-      setIsSuccess(true);
-      
-      // Hide success message after 5 seconds
-      setTimeout(() => setIsSuccess(false), 5000);
+        // Add notification to admin panel
+        addNotification({
+          type: 'info',
+          title: 'New Contact Form Submission',
+          message: `From: ${data.name} (${data.email}) - ${data.message.substring(0, 100)}...`,
+          source: 'contact'
+        });
+
+        // Show success toast
+        toast.success('Message sent successfully! I will get back to you soon.', {
+          duration: 5000,
+          position: 'top-center'
+        });
+
+        // Reset form
+        resetForm();
+        setIsSuccess(true);
+        
+        // Hide success message after 5 seconds
+        setTimeout(() => setIsSuccess(false), 5000);
+      } catch (error) {
+        toast.error('Failed to send message. Please try again.');
+        throw error;
+      }
     }
   });
 
@@ -401,29 +433,57 @@ export default function Contact() {
           <div className="contact-info">
             <h3 style={{ marginBottom: '1rem', color: '#2c3e50' }}>Contact Information</h3>
             
-            <div className="contact-item">
-              <span>📧</span>
-              <div>
-                <strong>Email</strong>
-                <p>{personalInfo.email}</p>
+            {isLoading ? (
+              <div className="loading-contact-info">
+                <div className="loading-spinner" style={{ 
+                  display: 'inline-block',
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid #f3f3f3',
+                  borderTop: '2px solid #3498db',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  marginRight: '10px'
+                }}></div>
+                Loading contact information...
               </div>
-            </div>
-            
-            <div className="contact-item">
-              <span>📱</span>
-              <div>
-                <strong>Phone</strong>
-                <p>{personalInfo.phone}</p>
+            ) : personalInfo ? (
+              <>
+                <div className="contact-item">
+                  <span>📧</span>
+                  <div>
+                    <strong>Email</strong>
+                    <p>{personalInfo.email}</p>
+                  </div>
+                </div>
+                
+                <div className="contact-item">
+                  <span>📱</span>
+                  <div>
+                    <strong>Phone</strong>
+                    <p>{personalInfo.phone || 'Not provided'}</p>
+                  </div>
+                </div>
+                
+                <div className="contact-item">
+                  <span>📍</span>
+                  <div>
+                    <strong>Location</strong>
+                    <p>{personalInfo.location || 'Not provided'}</p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="error-contact-info">
+                <p>Unable to load contact information</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="btn btn-secondary"
+                >
+                  Retry
+                </button>
               </div>
-            </div>
-            
-            <div className="contact-item">
-              <span>📍</span>
-              <div>
-                <strong>Location</strong>
-                <p>{personalInfo.location}</p>
-              </div>
-            </div>
+            )}
           </div>
           
           <div>

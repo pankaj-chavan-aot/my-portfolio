@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { 
-  personalInfo, 
-  projects, 
+  getPersonalInfo,
+  getProjects,
   updatePersonalInfo, 
   updateProjects, 
   addProject, 
@@ -57,11 +57,27 @@ function AdminDashboard() {
   const cvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Load saved data on component mount
-    setPersonalData(personalInfo);
-    setProjectsData(projects);
-    setImagePreview(personalInfo.profileImage);
-    updateUnreadCount();
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [personalDataFromDB, projectsFromDB] = await Promise.all([
+          getPersonalInfo(),
+          getProjects()
+        ]);
+        
+        setPersonalData(personalDataFromDB);
+        setProjectsData(projectsFromDB);
+        setImagePreview(personalDataFromDB.profileImage);
+        updateUnreadCount();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Failed to load data from database');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
     
     // Update unread count every 30 seconds
     const interval = setInterval(updateUnreadCount, 30000);
@@ -179,53 +195,76 @@ function AdminDashboard() {
   };
 
   // Save personal info
-  const handleSavePersonalInfo = () => {
-    updatePersonalInfo(personalData);
-    toast.success('Personal information updated successfully!');
+  const handleSavePersonalInfo = async () => {
+    try {
+      setIsLoading(true);
+      await updatePersonalInfo(personalData);
+      toast.success('Personal information updated successfully!');
+    } catch (error) {
+      toast.error('Failed to update personal information');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Save projects
-  const handleSaveProjects = () => {
-    updateProjects(projectsData);
-    toast.success('Projects updated successfully!');
+  const handleSaveProjects = async () => {
+    try {
+      setIsLoading(true);
+      await updateProjects(projectsData);
+      toast.success('Projects updated successfully!');
+    } catch (error) {
+      toast.error('Failed to update projects');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Add new project
-  const handleAddProject = () => {
+  const handleAddProject = async () => {
     if (!newProject.title.trim() || !newProject.description.trim()) {
       toast.error('Please fill in title and description');
       return;
     }
 
-    const project: Project = {
-      ...newProject,
-      id: Date.now()
-    };
-    const updatedProjects = [...projectsData, project];
-    setProjectsData(updatedProjects);
-    setNewProject({ 
-      title: '', 
-      description: '', 
-      technologies: [], 
-      githubUrl: '', 
-      liveUrl: '' 
-    });
-    setTechInput('');
-    toast.success('Project added successfully!');
+    try {
+      setIsLoading(true);
+      const project = await addProject(newProject);
+      const updatedProjects = [...projectsData, project];
+      setProjectsData(updatedProjects);
+      setNewProject({ 
+        title: '', 
+        description: '', 
+        technologies: [], 
+        githubUrl: '', 
+        liveUrl: '' 
+      });
+      setTechInput('');
+      toast.success('Project added successfully!');
+    } catch (error) {
+      toast.error('Failed to add project');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Delete project
-  const handleDeleteProject = (id: number) => {
+  const handleDeleteProject = async (id: number) => {
     toast.custom((t) => (
       <div className="confirmation-toast">
         <p>Are you sure you want to delete this project?</p>
         <div className="toast-actions">
           <button 
-            onClick={() => {
-              const updatedProjects = projectsData.filter(project => project.id !== id);
-              setProjectsData(updatedProjects);
-              toast.success('Project deleted successfully!');
-              toast.dismiss(t);
+            onClick={async () => {
+              try {
+                await deleteProject(id);
+                const updatedProjects = projectsData.filter(project => project.id !== id);
+                setProjectsData(updatedProjects);
+                toast.success('Project deleted successfully!');
+                toast.dismiss(t);
+              } catch (error) {
+                toast.error('Failed to delete project');
+              }
             }}
             className="btn-confirm"
           >
@@ -280,6 +319,17 @@ function AdminDashboard() {
       toast.error('No CV uploaded yet');
     }
   };
+
+  if (isLoading && projectsData.length === 0) {
+    return (
+      <div className="admin-container">
+        <div className="loading-screen">
+          <div className="loading-spinner large"></div>
+          <p>Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -533,8 +583,9 @@ function AdminDashboard() {
             <button 
               className="admin-btn-primary"
               onClick={handleSavePersonalInfo}
+              disabled={isLoading}
             >
-              💾 Save Personal Information
+              {isLoading ? '⏳ Saving...' : '💾 Save Personal Information'}
             </button>
           </div>
         </section>
@@ -626,8 +677,9 @@ function AdminDashboard() {
               <button 
                 className="admin-btn-primary"
                 onClick={handleAddProject}
+                disabled={isLoading}
               >
-                🚀 Add New Project
+                {isLoading ? '⏳ Adding...' : '🚀 Add New Project'}
               </button>
             </div>
           </div>
@@ -644,8 +696,9 @@ function AdminDashboard() {
                       className="delete-btn"
                       onClick={() => handleDeleteProject(project.id)}
                       type="button"
+                      disabled={isLoading}
                     >
-                      🗑️ Delete
+                      {isLoading ? '⏳' : '🗑️ Delete'}
                     </button>
                   </div>
                   <p className="project-description">{project.description}</p>
@@ -669,8 +722,9 @@ function AdminDashboard() {
             className="admin-btn-primary"
             onClick={handleSaveProjects}
             style={{ marginTop: '20px' }}
+            disabled={isLoading}
           >
-            💾 Save All Projects
+            {isLoading ? '⏳ Saving...' : '💾 Save All Projects'}
           </button>
         </section>
 

@@ -47,9 +47,12 @@
 
 import Link from 'next/link';
 import Button from '@/components/UI/Button';
-import { personalInfo } from '@/data/portfolio-data';
+import { getPersonalInfo } from '@/data/portfolio-data';
 
-export default function Home() {
+export default async function Home() {
+  // Fetch personal info from database
+  const personalInfo = await getPersonalInfo();
+
   return (
     <>
       <section className="hero">
