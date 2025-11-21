@@ -1,101 +1,3 @@
-// // // Portfolio Data - 
-// // export interface Project {
-// //   id: number;
-// //   title: string;
-// //   description: string;
-// //   technologies: string[];
-// //   githubUrl: string;
-// //   liveUrl?: string;
-// // }
-
-// // export interface PersonalInfo {
-// //   name: string;
-// //   title: string;
-// //   email: string;
-// //   phone: string;
-// //   location: string;
-// //   about: string;
-// //   skills: string[];
-// //   profileImage: string;
-// //   cvUrl: string;
-// // }
-
-// // // Default Data - 
-// // export let personalInfo: PersonalInfo = {
-// //   name: "Pankaj Chavan",
-// //   title: "Full Stack Developer",
-// //   email: "Pankaj.doe@example.com",
-// //   phone: "+1 (555) 123-4567",
-// //   location: "Jalgaon, IN",
-// //   about: "I'm a passionate developer with 6 month of experience building web applications. I love creating user-friendly experiences and solving complex problems through code.",
-// //   skills: ["JavaScript", "TypeScript", "React", "Next.js", "Node.js", "PostgreSQL", "Git", ],
-// //   profileImage: "/images/download.png", // Default placeholder image
-// //   cvUrl: "/cv/Pankaj-doe-cv.pdf" // Default CV path
-// // };
-
-// // export let projects: Project[] = [
-// //   {
-// //     id: 1,
-// //     title: "E-Commerce Platform",
-// //     description: "A full-stack e-commerce solution with user authentication, payment integration, and admin dashboard.",
-// //     technologies: ["React", "Node.js", "MongoDB", "Stripe"],
-// //     githubUrl: "#",
-// //     liveUrl: "#"
-// //   },
-// //   {
-// //     id: 2,
-// //     title: "Task Management App",
-// //     description: "A collaborative task management application with real-time updates and drag-drop functionality.",
-// //     technologies: ["Next.js", "TypeScript", "Socket.io"],
-// //     githubUrl: "#",
-// //     liveUrl: "#"
-// //   },
-// //   {
-// //     id: 3,
-// //     title: "Admin Dashboard",
-// //     description: "A responsive Admin dashboard with authentiction and interactive desinge.'",
-// //     technologies:["next.js", "PostgreSQL"],
-// //     githubUrl: "https://github.com/pankaj-chavan-aot/My-next-app'",
-// //     liveUrl: "https://my-next-app-rust-sigma.vercel.app/"
-// //   }
-// // ];
-
-// // // Data update functions
-// // export const updatePersonalInfo = (newInfo: PersonalInfo) => {
-// //   personalInfo = { ...personalInfo, ...newInfo };
-// // };
-
-// // export const updateProjects = (newProjects: Project[]) => {
-// //   projects = newProjects;
-// // };
-
-// // export const addProject = (project: Project) => {
-// //   projects.push(project);
-// // };
-
-// // export const deleteProject = (id: number) => {
-// //   projects = projects.filter(project => project.id !== id);
-// // };
-
-// // // Image and CV upload simulation
-// // export const handleImageUpload = (file: File): Promise<string> => {
-// //   return new Promise((resolve) => {
-// //     // In real app, upload to cloud storage and return URL
-// //     // For demo, we'll create a blob URL
-// //     const imageUrl = URL.createObjectURL(file);
-// //     resolve(imageUrl);
-// //   });
-// // };
-
-// // export const handleCVUpload = (file: File): Promise<string> => {
-// //   return new Promise((resolve) => {
-// //     // In real app, upload to server and return URL
-// //     // For demo, we'll create a blob URL
-// //     const cvUrl = URL.createObjectURL(file);
-// //     resolve(cvUrl);
-// //   });
-// // };
-
 
 
 // import { portfolioQueries } from '@/lib/db';
@@ -184,6 +86,28 @@
 //   } catch (error) {
 //     console.error('Error fetching projects:', error);
 //     return fallbackProjects;
+//   }
+// };
+
+// // Get single project by ID
+// export const getProjectById = async (id: number): Promise<Project | null> => {
+//   try {
+//     const result = await portfolioQueries.getProjectById(id);
+//     if (result.length > 0) {
+//       const project = result[0];
+//       return {
+//         id: project.id,
+//         title: project.title,
+//         description: project.description,
+//         technologies: Array.isArray(project.technologies) ? project.technologies : [],
+//         githubUrl: project.github_url || '',
+//         liveUrl: project.live_url
+//       };
+//     }
+//     return null;
+//   } catch (error) {
+//     console.error('Error fetching project:', error);
+//     return null;
 //   }
 // };
 
@@ -281,7 +205,7 @@ export interface PersonalInfo {
   cvUrl: string;
 }
 
-// Fallback data (if database is not available)
+// Fallback data
 const fallbackPersonalInfo: PersonalInfo = {
   name: "John Doe",
   title: "Full Stack Developer",
@@ -290,8 +214,8 @@ const fallbackPersonalInfo: PersonalInfo = {
   location: "New York, NY",
   about: "I'm a passionate developer with 3+ years of experience building web applications.",
   skills: ["JavaScript", "TypeScript", "React", "Next.js", "Node.js"],
-  profileImage: "/api/placeholder/400/400",
-  cvUrl: "/cv/john-doe-cv.pdf"
+  profileImage: "/default-avatar.png",
+  cvUrl: ""
 };
 
 const fallbackProjects: Project[] = [
@@ -319,7 +243,7 @@ export const getPersonalInfo = async (): Promise<PersonalInfo> => {
         location: data.location || '',
         about: data.about,
         skills: Array.isArray(data.skills) ? data.skills : [],
-        profileImage: data.profile_image || '/api/placeholder/400/400',
+        profileImage: data.profile_image || '/default-avatar.png',
         cvUrl: data.cv_url || ''
       };
     }
@@ -347,28 +271,6 @@ export const getProjects = async (): Promise<Project[]> => {
   }
 };
 
-// Get single project by ID
-export const getProjectById = async (id: number): Promise<Project | null> => {
-  try {
-    const result = await portfolioQueries.getProjectById(id);
-    if (result.length > 0) {
-      const project = result[0];
-      return {
-        id: project.id,
-        title: project.title,
-        description: project.description,
-        technologies: Array.isArray(project.technologies) ? project.technologies : [],
-        githubUrl: project.github_url || '',
-        liveUrl: project.live_url
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error('Error fetching project:', error);
-    return null;
-  }
-};
-
 // Update functions
 export const updatePersonalInfo = async (data: PersonalInfo): Promise<void> => {
   try {
@@ -381,12 +283,10 @@ export const updatePersonalInfo = async (data: PersonalInfo): Promise<void> => {
 
 export const updateProjects = async (projects: Project[]): Promise<void> => {
   try {
-    // Clear existing projects and create new ones
-    // In a real app, you'd want to update existing ones
+    // This would need to be more sophisticated in a real app
+    // For now, we'll just create new projects
     for (const project of projects) {
-      if (project.id) {
-        await portfolioQueries.updateProject(project.id, project);
-      } else {
+      if (!project.id) {
         await portfolioQueries.createProject(project);
       }
     }
@@ -422,19 +322,49 @@ export const deleteProject = async (id: number): Promise<void> => {
   }
 };
 
-// Image and CV upload simulation
+// Real file upload functions
 export const handleImageUpload = async (file: File): Promise<string> => {
-  return new Promise((resolve) => {
-    // In real app, upload to cloud storage and return URL
-    const imageUrl = URL.createObjectURL(file);
-    resolve(imageUrl);
-  });
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch('/api/portfolio/upload/image', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to upload image');
+    }
+
+    const result = await response.json();
+    return result.imageUrl;
+  } catch (error) {
+    console.error('Image upload error:', error);
+    throw error;
+  }
 };
 
-export const handleCVUpload = async (file: File): Promise<string> => {
-  return new Promise((resolve) => {
-    // In real app, upload to server and return URL
-    const cvUrl = URL.createObjectURL(file);
-    resolve(cvUrl);
-  });
+export const handleCVUpload = async (file: File): Promise<{ cvUrl: string; fileName: string }> => {
+  try {
+    const formData = new FormData();
+    formData.append('cv', file);
+
+    const response = await fetch('/api/portfolio/upload/cv', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to upload CV');
+    }
+
+    const result = await response.json();
+    return { cvUrl: result.cvUrl, fileName: result.fileName || file.name };
+  } catch (error) {
+    console.error('CV upload error:', error);
+    throw error;
+  }
 };

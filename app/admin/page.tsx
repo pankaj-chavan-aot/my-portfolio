@@ -13,6 +13,7 @@ import {
   handleImageUpload,
   handleCVUpload
 } from '@/data/portfolio-data';
+
 import { logout, changePassword } from '@/data/auth-data';
 import { getUnreadCount } from '@/data/notifications-data';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
@@ -122,69 +123,139 @@ function AdminDashboard() {
       toast.error('Current password is incorrect');
     }
   };
+// ------------------------------------------------------------
+  // // Handle Image Upload
+  // const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (file) {
+  //     if (!file.type.startsWith('image/')) {
+  //       toast.error('Please select an image file (JPEG, PNG, etc.)');
+  //       return;
+  //     }
 
-  // Handle Image Upload
+  //     if (file.size > 5 * 1024 * 1024) {
+  //       toast.error('Image size should be less than 5MB');
+  //       return;
+  //     }
+
+  //     setIsLoading(true);
+  //     try {
+  //       const imageUrl = await handleImageUpload(file);
+  //       setImagePreview(imageUrl);
+  //       setPersonalData({ ...personalData, profileImage: imageUrl });
+        
+  //       const reader = new FileReader();
+  //       reader.onload = (e) => {
+  //         setImagePreview(e.target?.result as string);
+  //         setIsLoading(false);
+  //       };
+  //       reader.readAsDataURL(file);
+        
+  //       toast.success('Profile image uploaded successfully!');
+  //     } catch (error) {
+  //       toast.error('Error uploading image');
+  //       setIsLoading(false);
+  //     }
+  //   }
+  // };
+
+
+ // Handle Image Upload
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file (JPEG, PNG, etc.)');
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size should be less than 5MB');
-        return;
-      }
-
       setIsLoading(true);
       try {
         const imageUrl = await handleImageUpload(file);
+        
+        // Update local state
         setImagePreview(imageUrl);
         setPersonalData({ ...personalData, profileImage: imageUrl });
         
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setImagePreview(e.target?.result as string);
-          setIsLoading(false);
-        };
-        reader.readAsDataURL(file);
+        // Update database
+        await updatePersonalInfo({ ...personalData, profileImage: imageUrl });
         
         toast.success('Profile image uploaded successfully!');
       } catch (error) {
-        toast.error('Error uploading image');
+        toast.error(error instanceof Error ? error.message : 'Error uploading image');
+      } finally {
         setIsLoading(false);
       }
     }
   };
 
+
+  // // -------------------------------------------------------------------------------------------------------
+
+  // Handle CV Upload
+  // const handleCVChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (file) {
+  //     if (file.type !== 'application/pdf') {
+  //       toast.error('Please select a PDF file');
+  //       return;
+  //     }
+
+  //     if (file.size > 10 * 1024 * 1024) {
+  //       toast.error('CV file size should be less than 10MB');
+  //       return;
+  //     }
+
+  //     setIsLoading(true);
+  //     try {
+  //       const cvUrl = await handleCVUpload(file);
+  //       setPersonalData({ ...personalData, cvUrl });
+  //       setCvFileName(file.name);
+  //       toast.success('CV uploaded successfully!');
+  //     } catch (error) {
+  //       toast.error('Error uploading CV');
+  //     }
+  //     setIsLoading(false);
+  //   }
+  // };
+
+
+
+  
   // Handle CV Upload
   const handleCVChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.type !== 'application/pdf') {
-        toast.error('Please select a PDF file');
-        return;
-      }
-
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error('CV file size should be less than 10MB');
-        return;
-      }
-
       setIsLoading(true);
       try {
-        const cvUrl = await handleCVUpload(file);
+        const { cvUrl, fileName } = await handleCVUpload(file);
+        
+        // Update local state
         setPersonalData({ ...personalData, cvUrl });
-        setCvFileName(file.name);
+        setCvFileName(fileName);
+        
+        // Update database
+        await updatePersonalInfo({ ...personalData, cvUrl });
+        
         toast.success('CV uploaded successfully!');
       } catch (error) {
-        toast.error('Error uploading CV');
+        toast.error(error instanceof Error ? error.message : 'Error uploading CV');
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
   };
 
+  // Download current CV
+  const handleDownloadCV = () => {
+    if (personalData.cvUrl) {
+      const link = document.createElement('a');
+      link.href = personalData.cvUrl;
+      link.download = cvFileName || 'cv.pdf';
+      link.click();
+    } else {
+      toast.error('No CV uploaded yet');
+    }
+  };
+
+
+
+// ----------------------------------------------------------------------------------
   // Trigger file input click
   const triggerImageInput = () => {
     fileInputRef.current?.click();
@@ -308,17 +379,17 @@ function AdminDashboard() {
     }
   };
 
-  // Download current CV
-  const handleDownloadCV = () => {
-    if (personalData.cvUrl) {
-      const link = document.createElement('a');
-      link.href = personalData.cvUrl;
-      link.download = cvFileName || 'my-cv.pdf';
-      link.click();
-    } else {
-      toast.error('No CV uploaded yet');
-    }
-  };
+  // // Download current CV
+  // const handleDownloadCV = () => {
+  //   if (personalData.cvUrl) {
+  //     const link = document.createElement('a');
+  //     link.href = personalData.cvUrl;
+  //     link.download = cvFileName || 'my-cv.pdf';
+  //     link.click();
+  //   } else {
+  //     toast.error('No CV uploaded yet');
+  //   }
+  // };
 
   if (isLoading && projectsData.length === 0) {
     return (
