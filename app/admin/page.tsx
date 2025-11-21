@@ -846,7 +846,7 @@ import './admin.css';
 const uploadToCloudinary = async (file: File, fileType: 'image' | 'pdf'): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', 'ml_default'); // तुमचा upload preset
+  formData.append('upload_preset', 'ml_default');
 
   try {
     const response = await fetch(
@@ -907,32 +907,48 @@ function AdminDashboard() {
   const cvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const [personalDataFromDB, projectsFromDB] = await Promise.all([
-          getPersonalInfo(),
-          getProjects()
-        ]);
-        
-        setPersonalData(personalDataFromDB);
-        setProjectsData(projectsFromDB);
-        setImagePreview(personalDataFromDB.profileImage);
-        updateUnreadCount();
-      } catch (error) {
-        console.error('Error loading data:', error);
-        toast.error('Failed to load data from database');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
+    loadInitialData();
     
     // Update unread count every 30 seconds
     const interval = setInterval(updateUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const loadInitialData = async () => {
+    try {
+      setIsLoading(true);
+      const [personalDataFromDB, projectsFromDB] = await Promise.all([
+        getPersonalInfo(),
+        getProjects()
+      ]);
+      
+      console.log('Loaded personal data:', personalDataFromDB);
+      console.log('Profile image URL:', personalDataFromDB.profileImage);
+      console.log('CV URL:', personalDataFromDB.cvUrl);
+      
+      setPersonalData(personalDataFromDB);
+      setProjectsData(projectsFromDB);
+      
+      // Set image preview - check if URL exists and is valid
+      if (personalDataFromDB.profileImage && personalDataFromDB.profileImage !== '') {
+        setImagePreview(personalDataFromDB.profileImage);
+      } else {
+        setImagePreview('/default-avatar.png');
+      }
+      
+      // Set CV file name if exists
+      if (personalDataFromDB.cvUrl) {
+        setCvFileName('Download CV');
+      }
+      
+      updateUnreadCount();
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Failed to load data from database');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const updateUnreadCount = () => {
     setUnreadCount(getUnreadCount());
@@ -990,7 +1006,7 @@ function AdminDashboard() {
 
       setIsLoading(true);
       try {
-        // Create local preview
+        // Create local preview immediately
         const reader = new FileReader();
         reader.onload = (e) => {
           setImagePreview(e.target?.result as string);
@@ -999,17 +1015,34 @@ function AdminDashboard() {
 
         // Upload to Cloudinary
         const imageUrl = await uploadToCloudinary(file, 'image');
+        console.log('Uploaded image URL:', imageUrl);
+        
+        // Create updated personal data with new image URL
+        const updatedPersonalData = {
+          ...personalData,
+          profileImage: imageUrl
+        };
         
         // Update local state
-        setPersonalData({ ...personalData, profileImage: imageUrl });
+        setPersonalData(updatedPersonalData);
+        setImagePreview(imageUrl);
         
-        // Update database
-        await updatePersonalInfo({ ...personalData, profileImage: imageUrl });
+        // Update database - wait for this to complete
+        await updatePersonalInfo(updatedPersonalData);
+        console.log('Database updated with new image URL');
         
         toast.success('Profile image uploaded to Cloudinary successfully!');
+        
+        // Reload data to ensure consistency
+        setTimeout(() => {
+          loadInitialData();
+        }, 1000);
+        
       } catch (error) {
         console.error('Image upload error:', error);
         toast.error(error instanceof Error ? error.message : 'Error uploading image to Cloudinary');
+        // Reset to previous image on error
+        setImagePreview(personalData.profileImage || '/default-avatar.png');
       } finally {
         setIsLoading(false);
       }
@@ -1035,15 +1068,29 @@ function AdminDashboard() {
       try {
         // Upload to Cloudinary
         const cvUrl = await uploadToCloudinary(file, 'pdf');
+        console.log('Uploaded CV URL:', cvUrl);
+        
+        // Create updated personal data with new CV URL
+        const updatedPersonalData = {
+          ...personalData,
+          cvUrl: cvUrl
+        };
         
         // Update local state
-        setPersonalData({ ...personalData, cvUrl });
+        setPersonalData(updatedPersonalData);
         setCvFileName(file.name);
         
-        // Update database
-        await updatePersonalInfo({ ...personalData, cvUrl });
+        // Update database - wait for this to complete
+        await updatePersonalInfo(updatedPersonalData);
+        console.log('Database updated with new CV URL');
         
         toast.success('CV uploaded to Cloudinary successfully!');
+        
+        // Reload data to ensure consistency
+        setTimeout(() => {
+          loadInitialData();
+        }, 1000);
+        
       } catch (error) {
         console.error('CV upload error:', error);
         toast.error(error instanceof Error ? error.message : 'Error uploading CV to Cloudinary');
@@ -1059,8 +1106,11 @@ function AdminDashboard() {
       const link = document.createElement('a');
       link.href = personalData.cvUrl;
       link.download = cvFileName || 'cv.pdf';
-      link.target = '_blank'; // Cloudinary URL साठी
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } else {
       toast.error('No CV uploaded yet');
     }
@@ -1081,6 +1131,12 @@ function AdminDashboard() {
       setIsLoading(true);
       await updatePersonalInfo(personalData);
       toast.success('Personal information updated successfully!');
+      
+      // Reload data to ensure consistency
+      setTimeout(() => {
+        loadInitialData();
+      }, 500);
+      
     } catch (error) {
       toast.error('Failed to update personal information');
     } finally {
@@ -1303,10 +1359,11 @@ function AdminDashboard() {
               <div className="image-upload-container">
                 <div className="image-preview">
                   <img 
-                    src={imagePreview || '/default-avatar.png'} 
+                    src={imagePreview} 
                     alt="Profile Preview" 
                     className="profile-preview"
                     onError={(e) => {
+                      console.log('Image failed to load:', imagePreview);
                       e.currentTarget.src = '/default-avatar.png';
                     }}
                   />
@@ -1334,6 +1391,11 @@ function AdminDashboard() {
                 <p className="cloudinary-info">
                   🌩️ Files are stored securely on Cloudinary
                 </p>
+                {personalData.profileImage && (
+                  <p className="current-url">
+                    <small>Current: {personalData.profileImage.substring(0, 50)}...</small>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1343,7 +1405,7 @@ function AdminDashboard() {
               <div className="cv-upload-container">
                 <div className="cv-info">
                   <span className="cv-status">
-                    {cvFileName || personalData.cvUrl ? '✅ CV Uploaded' : '❌ No CV Uploaded'}
+                    {personalData.cvUrl ? '✅ CV Uploaded' : '❌ No CV Uploaded'}
                   </span>
                   {cvFileName && (
                     <span className="cv-filename">📋 {cvFileName}</span>
@@ -1380,10 +1442,15 @@ function AdminDashboard() {
                 <p className="cloudinary-info">
                   🌩️ Files are stored securely on Cloudinary
                 </p>
+                {personalData.cvUrl && (
+                  <p className="current-url">
+                    <small>Current: {personalData.cvUrl.substring(0, 50)}...</small>
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* ... rest of the personal info form remains the same ... */}
+            {/* Rest of the form remains the same */}
             <div className="admin-form-group">
               <label>👤 Full Name *</label>
               <input
@@ -1395,22 +1462,19 @@ function AdminDashboard() {
               />
             </div>
 
-            <div className="admin-form-group">
-              <label>💼 Professional Title *</label>
-              <input
-                type="text"
-                value={personalData.title}
-                onChange={(e) => setPersonalData({...personalData, title: e.target.value})}
-                required
-                placeholder="e.g., Full Stack Developer"
-              />
-            </div>
-
-            {/* ... rest of the code remains exactly the same ... */}
+            {/* ... rest of the form fields ... */}
           </div>
+
+          <button 
+            className="admin-btn-primary"
+            onClick={handleSavePersonalInfo}
+            disabled={isLoading}
+          >
+            {isLoading ? '⏳ Saving...' : '💾 Save Personal Information'}
+          </button>
         </section>
 
-        {/* ... rest of the component remains exactly the same ... */}
+        {/* ... rest of the component ... */}
       </div>
     </ProtectedRoute>
   );
