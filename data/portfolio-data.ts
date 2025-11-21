@@ -1,5 +1,6 @@
 
 
+
 // import { portfolioQueries } from '@/lib/db';
 
 // export interface Project {
@@ -23,7 +24,7 @@
 //   cvUrl: string;
 // }
 
-// // Fallback data (if database is not available)
+// // Fallback data
 // const fallbackPersonalInfo: PersonalInfo = {
 //   name: "John Doe",
 //   title: "Full Stack Developer",
@@ -32,8 +33,8 @@
 //   location: "New York, NY",
 //   about: "I'm a passionate developer with 3+ years of experience building web applications.",
 //   skills: ["JavaScript", "TypeScript", "React", "Next.js", "Node.js"],
-//   profileImage: "/api/placeholder/400/400",
-//   cvUrl: "/cv/john-doe-cv.pdf"
+//   profileImage: "/default-avatar.png",
+//   cvUrl: ""
 // };
 
 // const fallbackProjects: Project[] = [
@@ -61,7 +62,7 @@
 //         location: data.location || '',
 //         about: data.about,
 //         skills: Array.isArray(data.skills) ? data.skills : [],
-//         profileImage: data.profile_image || '/api/placeholder/400/400',
+//         profileImage: data.profile_image || '/default-avatar.png',
 //         cvUrl: data.cv_url || ''
 //       };
 //     }
@@ -89,28 +90,6 @@
 //   }
 // };
 
-// // Get single project by ID
-// export const getProjectById = async (id: number): Promise<Project | null> => {
-//   try {
-//     const result = await portfolioQueries.getProjectById(id);
-//     if (result.length > 0) {
-//       const project = result[0];
-//       return {
-//         id: project.id,
-//         title: project.title,
-//         description: project.description,
-//         technologies: Array.isArray(project.technologies) ? project.technologies : [],
-//         githubUrl: project.github_url || '',
-//         liveUrl: project.live_url
-//       };
-//     }
-//     return null;
-//   } catch (error) {
-//     console.error('Error fetching project:', error);
-//     return null;
-//   }
-// };
-
 // // Update functions
 // export const updatePersonalInfo = async (data: PersonalInfo): Promise<void> => {
 //   try {
@@ -123,12 +102,10 @@
 
 // export const updateProjects = async (projects: Project[]): Promise<void> => {
 //   try {
-//     // Clear existing projects and create new ones
-//     // In a real app, you'd want to update existing ones
+//     // This would need to be more sophisticated in a real app
+//     // For now, we'll just create new projects
 //     for (const project of projects) {
-//       if (project.id) {
-//         await portfolioQueries.updateProject(project.id, project);
-//       } else {
+//       if (!project.id) {
 //         await portfolioQueries.createProject(project);
 //       }
 //     }
@@ -164,24 +141,56 @@
 //   }
 // };
 
-// // Image and CV upload simulation
+// // Real file upload functions
 // export const handleImageUpload = async (file: File): Promise<string> => {
-//   return new Promise((resolve) => {
-//     // In real app, upload to cloud storage and return URL
-//     const imageUrl = URL.createObjectURL(file);
-//     resolve(imageUrl);
-//   });
+//   try {
+//     const formData = new FormData();
+//     formData.append('image', file);
+
+//     const response = await fetch('/api/portfolio/upload/image', {
+//       method: 'POST',
+//       body: formData,
+//     });
+
+//     if (!response.ok) {
+//       const error = await response.json();
+//       throw new Error(error.error || 'Failed to upload image');
+//     }
+
+//     const result = await response.json();
+//     return result.imageUrl;
+//   } catch (error) {
+//     console.error('Image upload error:', error);
+//     throw error;
+//   }
 // };
 
-// export const handleCVUpload = async (file: File): Promise<string> => {
-//   return new Promise((resolve) => {
-//     // In real app, upload to server and return URL
-//     const cvUrl = URL.createObjectURL(file);
-//     resolve(cvUrl);
-//   });
+// export const handleCVUpload = async (file: File): Promise<{ cvUrl: string; fileName: string }> => {
+//   try {
+//     const formData = new FormData();
+//     formData.append('cv', file);
+
+//     const response = await fetch('/api/portfolio/upload/cv', {
+//       method: 'POST',
+//       body: formData,
+//     });
+
+//     if (!response.ok) {
+//       const error = await response.json();
+//       throw new Error(error.error || 'Failed to upload CV');
+//     }
+
+//     const result = await response.json();
+//     return { cvUrl: result.cvUrl, fileName: result.fileName || file.name };
+//   } catch (error) {
+//     console.error('CV upload error:', error);
+//     throw error;
+//   }
 // };
 
 
+
+// portfolio-data.ts
 import { portfolioQueries } from '@/lib/db';
 
 export interface Project {
@@ -233,20 +242,25 @@ const fallbackProjects: Project[] = [
 export const getPersonalInfo = async (): Promise<PersonalInfo> => {
   try {
     const result = await portfolioQueries.getPersonalInfo();
+    console.log('Database result for personal info:', result);
+    
     if (result.length > 0) {
       const data = result[0];
-      return {
-        name: data.name,
-        title: data.title,
-        email: data.email,
+      const personalInfo = {
+        name: data.name || '',
+        title: data.title || '',
+        email: data.email || '',
         phone: data.phone || '',
         location: data.location || '',
-        about: data.about,
-        skills: Array.isArray(data.skills) ? data.skills : [],
+        about: data.about || '',
+        skills: Array.isArray(data.skills) ? data.skills : (data.skills ? [data.skills] : []),
         profileImage: data.profile_image || '/default-avatar.png',
         cvUrl: data.cv_url || ''
       };
+      console.log('Processed personal info:', personalInfo);
+      return personalInfo;
     }
+    console.log('No data found, using fallback');
     return fallbackPersonalInfo;
   } catch (error) {
     console.error('Error fetching personal info:', error);
@@ -261,7 +275,7 @@ export const getProjects = async (): Promise<Project[]> => {
       id: project.id,
       title: project.title,
       description: project.description,
-      technologies: Array.isArray(project.technologies) ? project.technologies : [],
+      technologies: Array.isArray(project.technologies) ? project.technologies : (project.technologies ? [project.technologies] : []),
       githubUrl: project.github_url || '',
       liveUrl: project.live_url
     }));
@@ -274,7 +288,9 @@ export const getProjects = async (): Promise<Project[]> => {
 // Update functions
 export const updatePersonalInfo = async (data: PersonalInfo): Promise<void> => {
   try {
+    console.log('Updating personal info in database:', data);
     await portfolioQueries.updatePersonalInfo(data);
+    console.log('Personal info updated successfully');
   } catch (error) {
     console.error('Error updating personal info:', error);
     throw new Error('Failed to update personal info');
@@ -283,6 +299,7 @@ export const updatePersonalInfo = async (data: PersonalInfo): Promise<void> => {
 
 export const updateProjects = async (projects: Project[]): Promise<void> => {
   try {
+    console.log('Updating projects in database:', projects);
     // This would need to be more sophisticated in a real app
     // For now, we'll just create new projects
     for (const project of projects) {
@@ -290,6 +307,7 @@ export const updateProjects = async (projects: Project[]): Promise<void> => {
         await portfolioQueries.createProject(project);
       }
     }
+    console.log('Projects updated successfully');
   } catch (error) {
     console.error('Error updating projects:', error);
     throw new Error('Failed to update projects');
@@ -298,15 +316,18 @@ export const updateProjects = async (projects: Project[]): Promise<void> => {
 
 export const addProject = async (project: Omit<Project, 'id'>): Promise<Project> => {
   try {
+    console.log('Adding new project:', project);
     const result = await portfolioQueries.createProject(project);
-    return {
+    const newProject = {
       id: result[0].id,
       title: result[0].title,
       description: result[0].description,
-      technologies: Array.isArray(result[0].technologies) ? result[0].technologies : [],
+      technologies: Array.isArray(result[0].technologies) ? result[0].technologies : (result[0].technologies ? [result[0].technologies] : []),
       githubUrl: result[0].github_url || '',
       liveUrl: result[0].live_url
     };
+    console.log('Project added successfully:', newProject);
+    return newProject;
   } catch (error) {
     console.error('Error adding project:', error);
     throw new Error('Failed to add project');
@@ -315,56 +336,77 @@ export const addProject = async (project: Omit<Project, 'id'>): Promise<Project>
 
 export const deleteProject = async (id: number): Promise<void> => {
   try {
+    console.log('Deleting project:', id);
     await portfolioQueries.deleteProject(id);
+    console.log('Project deleted successfully');
   } catch (error) {
     console.error('Error deleting project:', error);
     throw new Error('Failed to delete project');
   }
 };
 
-// Real file upload functions
+// Cloudinary file upload functions
 export const handleImageUpload = async (file: File): Promise<string> => {
   try {
+    console.log('Uploading image to Cloudinary:', file.name);
+    
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('file', file);
+    formData.append('upload_preset', 'ml_default');
 
-    const response = await fetch('/api/portfolio/upload/image', {
-      method: 'POST',
-      body: formData,
-    });
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/ydvco6ccpr/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to upload image');
+      const errorText = await response.text();
+      console.error('Cloudinary upload failed:', errorText);
+      throw new Error(`Upload failed: ${errorText}`);
     }
 
-    const result = await response.json();
-    return result.imageUrl;
+    const data = await response.json();
+    console.log('Image uploaded successfully:', data.secure_url);
+    return data.secure_url;
   } catch (error) {
     console.error('Image upload error:', error);
-    throw error;
+    throw new Error('Failed to upload image to Cloudinary');
   }
 };
 
 export const handleCVUpload = async (file: File): Promise<{ cvUrl: string; fileName: string }> => {
   try {
+    console.log('Uploading CV to Cloudinary:', file.name);
+    
     const formData = new FormData();
-    formData.append('cv', file);
+    formData.append('file', file);
+    formData.append('upload_preset', 'ml_default');
 
-    const response = await fetch('/api/portfolio/upload/cv', {
-      method: 'POST',
-      body: formData,
-    });
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/ydvco6ccpr/auto/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to upload CV');
+      const errorText = await response.text();
+      console.error('Cloudinary upload failed:', errorText);
+      throw new Error(`Upload failed: ${errorText}`);
     }
 
-    const result = await response.json();
-    return { cvUrl: result.cvUrl, fileName: result.fileName || file.name };
+    const data = await response.json();
+    console.log('CV uploaded successfully:', data.secure_url);
+    return { 
+      cvUrl: data.secure_url, 
+      fileName: file.name 
+    };
   } catch (error) {
     console.error('CV upload error:', error);
-    throw error;
+    throw new Error('Failed to upload CV to Cloudinary');
   }
 };
