@@ -1879,11 +1879,11 @@ function AdminDashboard() {
               <div className="image-upload-container">
                 <div className="image-preview">
                   <img 
-                    src={imagePreview || '/default-avatar.png'} 
+                    src={imagePreview || '/default-avatar.jpg'} 
                     alt="Profile Preview" 
                     className="profile-preview"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/default-avatar.png';
+                      (e.target as HTMLImageElement).src = '/default-avatar.jpg';
                     }}
                   />
                   <div className="image-overlay">
