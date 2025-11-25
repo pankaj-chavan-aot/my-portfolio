@@ -868,7 +868,7 @@ const uploadToCloudinaryWithFallback = async (file: File, fileType: 'image' | 'p
       formData.append('upload_preset', 'ml_default');
       
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/ydvco6ccpr/auto/upload`,
+        `https://api.cloudinary.com/v1_1/dvco6ccpr/auto/upload`,
         {
           method: 'POST',
           body: formData,
