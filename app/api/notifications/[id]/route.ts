@@ -1,24 +1,87 @@
+// import { NextRequest, NextResponse } from 'next/server';
+// import { notificationQueries } from '@/lib/db';
+
+// interface RouteParams {
+//   params: {
+//     id: string;
+//   }
+// }
+
+// export async function PUT(request: NextRequest, { params }: RouteParams) {
+//   try {
+//     const id = parseInt(params.id);
+    
+//     if (isNaN(id)) {
+//       return NextResponse.json(
+//         { error: 'Invalid notification ID' },
+//         { status: 400 }
+//       );
+//     }
+
+//     const notification = await notificationQueries.markAsRead(id);
+
+//     return NextResponse.json({
+//       message: 'Notification marked as read',
+//       notification: notification[0]
+//     });
+//   } catch (error) {
+//     console.error('Error updating notification:', error);
+//     return NextResponse.json(
+//       { error: 'Failed to update notification' },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+// export async function DELETE(request: NextRequest, { params }: RouteParams) {
+//   try {
+//     const id = parseInt(params.id);
+    
+//     if (isNaN(id)) {
+//       return NextResponse.json(
+//         { error: 'Invalid notification ID' },
+//         { status: 400 }
+//       );
+//     }
+
+//     // For now, we'll just mark as read since we don't have delete functionality
+//     const notification = await notificationQueries.markAsRead(id);
+
+//     return NextResponse.json({
+//       message: 'Notification marked as read',
+//       notification: notification[0]
+//     });
+//   } catch (error) {
+//     console.error('Error deleting notification:', error);
+//     return NextResponse.json(
+//       { error: 'Failed to delete notification' },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+
+
+
 import { NextRequest, NextResponse } from 'next/server';
 import { notificationQueries } from '@/lib/db';
 
-interface RouteParams {
-  params: {
-    id: string;
-  }
-}
-
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await params; // ✅ Await the params
+    const numericId = parseInt(id);
     
-    if (isNaN(id)) {
+    if (isNaN(numericId)) {
       return NextResponse.json(
         { error: 'Invalid notification ID' },
         { status: 400 }
       );
     }
 
-    const notification = await notificationQueries.markAsRead(id);
+    const notification = await notificationQueries.markAsRead(numericId);
 
     return NextResponse.json({
       message: 'Notification marked as read',
@@ -33,11 +96,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await params; // ✅ Await the params
+    const numericId = parseInt(id);
     
-    if (isNaN(id)) {
+    if (isNaN(numericId)) {
       return NextResponse.json(
         { error: 'Invalid notification ID' },
         { status: 400 }
@@ -45,7 +112,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // For now, we'll just mark as read since we don't have delete functionality
-    const notification = await notificationQueries.markAsRead(id);
+    const notification = await notificationQueries.markAsRead(numericId);
 
     return NextResponse.json({
       message: 'Notification marked as read',
