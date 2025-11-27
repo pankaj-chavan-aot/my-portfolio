@@ -254,6 +254,7 @@ const getSql = () => {
     process.env.DATABASE_URL || // 1. Primary environment variable
     'postgresql://neondb_owner:npg_F8vXnitsI1Mj@ep-dawn-feather-adukowyb-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'; // 2. Direct fallback
 
+    
   if (!databaseUrl) {
     console.error('❌ DATABASE_URL is not configured');
     console.log('💡 Please set DATABASE_URL in Vercel environment variables');
